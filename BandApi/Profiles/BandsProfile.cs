@@ -14,6 +14,7 @@ namespace BandApi.Profiles
                 .ForMember(dest => dest.FoundedYearsAgo, 
                     opt => opt.MapFrom(src => $"{src.Founded:yyyy} ({src.Founded.GetYearsAgo()})"));
 
+            CreateMap<BandForCreateDto, Band>();
         }
     }
 }

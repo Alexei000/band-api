@@ -73,6 +73,23 @@ namespace BandApi.Services
             return bandsDto;
         }
 
+        public IEnumerable<BandDto> GetBands(BandsResourceParameters bandsResParams)
+        {
+            if (bandsResParams == null)
+                throw new ArgumentNullException(nameof(bandsResParams));
+
+            var bands = _context.Bands
+                .Where(b => string.IsNullOrWhiteSpace(bandsResParams.MainGenre) || b.MainGenre == bandsResParams.MainGenre);
+
+            if (!string.IsNullOrWhiteSpace(bandsResParams.SearchQuery))
+            {
+                bands = bands.Where(b => b.Name.Contains(bandsResParams.SearchQuery));
+            }
+
+            var bandsDto = _mapper.Map<IEnumerable<BandDto>>(bands);
+            return bandsDto;
+        }
+
         public Band GetBand(Guid bandId)
         {
             if (bandId == Guid.Empty)

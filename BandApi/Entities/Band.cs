@@ -21,7 +21,7 @@ namespace BandApi.Entities
         public string MainGenre { get; set; }
 
 
-        public ICollection<Album> Type { get; set; } = new List<Album>();
+        public ICollection<Album> Albums { get; set; } = new List<Album>();
 
     }
 }

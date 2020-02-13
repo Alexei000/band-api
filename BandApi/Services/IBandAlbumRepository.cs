@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BandApi.Entities;
+using BandApi.Helpers;
 using BandApi.Models;
 
 namespace BandApi.Services
@@ -16,6 +17,7 @@ namespace BandApi.Services
         void DeleteAlbum(Album album);
 
         IEnumerable<BandDto> GetBands();
+        IEnumerable<BandDto> GetBands(BandsResourceParameters bandsResParams);
         Band GetBand(Guid bandId);
         IEnumerable<Band> GetBands(IEnumerable<Guid> bandIds);
         void AddBand(Band band);
