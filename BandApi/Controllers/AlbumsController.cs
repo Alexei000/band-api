@@ -4,6 +4,7 @@ using AutoMapper;
 using BandApi.Entities;
 using BandApi.Models;
 using BandApi.Services;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BandApi.Controllers
@@ -56,7 +57,44 @@ namespace BandApi.Controllers
             _bandAlbumRepository.Save();
 
             var albumToReturn = _mapper.Map<AlbumDto>(albumEntity);
-            return CreatedAtRoute(nameof(GetAlbumForBand), new { bandId = bandId, albumId = albumToReturn.Id}, albumToReturn);
+            return CreatedAtRoute(nameof(GetAlbumForBand), new {bandId, albumId = albumToReturn.Id}, albumToReturn);
+        }
+
+        [HttpPut("{albumId}")]
+        public ActionResult UpdateAlbumForBand(Guid bandId, Guid albumId, [FromBody] AlbumForUpdateDto album)
+        {
+            if (!_bandAlbumRepository.BandExists(bandId))
+                return NotFound();
+            var albumEntity = _bandAlbumRepository.GetAlbum(bandId, albumId);
+            if (albumEntity == null)
+                return NotFound();
+
+            _mapper.Map(album, albumEntity);
+            _bandAlbumRepository.UpdateAlbum(albumEntity);
+            _bandAlbumRepository.Save();
+            return NoContent();
+        }
+
+        [HttpPatch("{albumId}")]
+        public ActionResult PartiallyUpdateAlbumForBand(Guid bandId, Guid albumId, 
+            [FromBody] JsonPatchDocument<AlbumForUpdateDto> patchDocument)
+        {
+            if (!_bandAlbumRepository.BandExists(bandId))
+                return NotFound();
+            var albumEntity = _bandAlbumRepository.GetAlbum(bandId, albumId);
+            if (albumEntity == null)
+                return NotFound();
+
+            var albumToPatch = _mapper.Map<AlbumForUpdateDto>(albumEntity);
+            patchDocument.ApplyTo(albumToPatch, ModelState);
+
+            if (!TryValidateModel(albumToPatch))
+                return ValidationProblem(ModelState);
+
+            _mapper.Map(albumToPatch, albumEntity);
+            _bandAlbumRepository.UpdateAlbum(albumEntity);
+            _bandAlbumRepository.Save();
+            return NoContent();
         }
     }
 }

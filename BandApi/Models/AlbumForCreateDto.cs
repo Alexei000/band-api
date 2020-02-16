@@ -4,16 +4,8 @@ using BandApi.ValidationAttributes;
 
 namespace BandApi.Models
 {
-    [TitleAndDescription(ErrorMessage = "Title must be different...")]
-    public class AlbumForCreateDto // : IValidatableObject
+    public class AlbumForCreateDto : AlbumManipulationDto // : IValidatableObject
     {
-        [Required]
-        [MaxLength(200)]
-        public string Title { get; set; }
-
-        [MaxLength(400)]
-        public string Description { get; set; }
-
         //public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         //{
         //    if (Title == Description)
