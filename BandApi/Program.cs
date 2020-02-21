@@ -20,14 +20,13 @@ namespace BandApi
                 var context = scope.ServiceProvider.GetService<BandAlbumContext>();
 
                 // context.Database.EnsureDeleted();
-                // context.Database.Migrate();
+                context.Database.Migrate();
             }
             catch (Exception exception)
             {
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
                 logger.LogError(exception, "Error on migration was in progress");
             }
-
 
             host.Run();
         }

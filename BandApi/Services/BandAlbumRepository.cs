@@ -14,11 +14,13 @@ namespace BandApi.Services
     {
         private readonly BandAlbumContext _context;
         private readonly IMapper _mapper;
+        private readonly IPropertyMappingService _propertyMappingService;
 
-        public BandAlbumRepository(BandAlbumContext context, IMapper mapper)
+        public BandAlbumRepository(BandAlbumContext context, IMapper mapper, IPropertyMappingService propertyMappingService)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _mapper = mapper;
+            _propertyMappingService = propertyMappingService;
         }
 
         public IEnumerable<Album> GetAlbums(Guid bandId)
@@ -73,7 +75,7 @@ namespace BandApi.Services
             return bandsDto;
         }
 
-        public IEnumerable<BandDto> GetBands(BandsResourceParameters bandsResParams)
+        public PagedList<Band> GetBands(BandsResourceParameters bandsResParams)
         {
             if (bandsResParams == null)
                 throw new ArgumentNullException(nameof(bandsResParams));
@@ -86,8 +88,13 @@ namespace BandApi.Services
                 bands = bands.Where(b => b.Name.Contains(bandsResParams.SearchQuery));
             }
 
-            var bandsDto = _mapper.Map<IEnumerable<BandDto>>(bands);
-            return bandsDto;
+            if (!string.IsNullOrWhiteSpace(bandsResParams.OrderBy))
+            {
+                var mapDictionary = _propertyMappingService.GetPropertyMapping<BandDto, Band>();
+                bands = bands.ApplySort(bandsResParams.OrderBy, mapDictionary);
+            }
+            var bandsPage = PagedList<Band>.Create(bands, bandsResParams.PageNumber, bandsResParams.PageSize);
+            return bandsPage;
         }
 
         public Band GetBand(Guid bandId)
