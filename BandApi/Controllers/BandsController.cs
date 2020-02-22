@@ -16,14 +16,16 @@ namespace BandApi.Controllers
     {
         private readonly IBandAlbumRepository _bandAlbumRepository;
         private readonly IMapper _mapper;
-        private IPropertyMappingService _propertyMappingService;
+        private readonly IPropertyMappingService _propertyMappingService;
+        private readonly IPropertyValidationService _propertyValidationService;
 
         public BandsController(IBandAlbumRepository bandAlbumRepository, IMapper mapper,
-            IPropertyMappingService propertyMappingService)
+            IPropertyMappingService propertyMappingService, IPropertyValidationService propertyValidationService)
         {
             _bandAlbumRepository = bandAlbumRepository ?? throw new ArgumentNullException(nameof(bandAlbumRepository));
             _mapper = mapper;
             _propertyMappingService = propertyMappingService ?? throw new ArgumentNullException(nameof(propertyMappingService));
+            _propertyValidationService = propertyValidationService ?? throw new ArgumentNullException(nameof(propertyValidationService));
         }
 
         private string CreateBandsUri(BandsResourceParameters bandsResourceParameters, UriType uriType)
@@ -36,7 +38,8 @@ namespace BandApi.Controllers
                     pageNumber = bandsResourceParameters.PageNumber - 1,
                     pageSize = bandsResourceParameters.PageSize,
                     mainGenre = bandsResourceParameters.MainGenre,
-                    searchQuery = bandsResourceParameters.SearchQuery
+                    searchQuery = bandsResourceParameters.SearchQuery,
+                    fields = bandsResourceParameters.Fields
                 }),
                 UriType.NextPage => Url.Link(nameof(GetBands), new
                 {
@@ -44,7 +47,8 @@ namespace BandApi.Controllers
                     pageNumber = bandsResourceParameters.PageNumber + 1,
                     pageSize = bandsResourceParameters.PageSize,
                     mainGenre = bandsResourceParameters.MainGenre,
-                    searchQuery = bandsResourceParameters.SearchQuery
+                    searchQuery = bandsResourceParameters.SearchQuery,
+                    fields = bandsResourceParameters.Fields
                 }),
                 _ => Url.Link(nameof(GetBands), new
                 {
@@ -59,10 +63,13 @@ namespace BandApi.Controllers
 
         [HttpHead]
         [HttpGet(Name = nameof(GetBands))]
-        public ActionResult<IEnumerable<BandDto>> GetBands([FromQuery] BandsResourceParameters bandsResParams)
+        public IActionResult GetBands([FromQuery] BandsResourceParameters bandsResParams)
         {
             if (!_propertyMappingService.ValidMappingExists<BandDto, Band>(bandsResParams.OrderBy))
                 return BadRequest("Invalid mapping");
+
+            if (!_propertyValidationService.HasValidProperties<BandDto>(bandsResParams.Fields))
+                return BadRequest(nameof(bandsResParams.Fields));
 
             var repoBands = _bandAlbumRepository.GetBands(bandsResParams);
 
@@ -76,20 +83,25 @@ namespace BandApi.Controllers
                 currentPage = repoBands.CurrentPage,
                 totalPages = repoBands.TotalPages,
                 prevPageLink,
-                nextPageLink
+                nextPageLink,
             };
 
             Response.Headers.Add("Pagination", JsonConvert.SerializeObject(metadata));
 
             var bandToReturn = _mapper.Map<IEnumerable<BandDto>>(repoBands);
-            return Ok(bandToReturn);
+            var shapedData = bandToReturn.ShapeData(bandsResParams.Fields);
+
+            return Ok(shapedData);
         }
 
         [HttpGet("{bandId}", Name = nameof(GetBand))]
-        public IActionResult GetBand(Guid bandId)
+        public IActionResult GetBand(Guid bandId, string fields)
         {
+            if (!_propertyValidationService.HasValidProperties<BandDto>(fields))
+                return BadRequest(nameof(fields));
+
             var band = _bandAlbumRepository.GetBand(bandId);
-            return band == null ? (IActionResult) NotFound() : Ok(band);
+            return band == null ? (IActionResult) NotFound() : Ok(band.ShapeData(fields));
         }
 
         [HttpPost]
